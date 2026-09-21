@@ -4,18 +4,51 @@
 
 Voice and typed computer use for macOS. You say what you want. Jev picks the next on-screen action. macOS performs it. No screenshots: the app reads the screen through the Accessibility tree.
 
+## New in this fork
+
+- **Custom keyboard shortcut:** record your preferred key combination in Settings. It is saved across launches, with conflict handling that restores the previous shortcut.
+- **Continuous hands-free mode:** speak, pause, and let the app act. Listening resumes after each command without holding a key.
+- **Optional “Hey Jev” wake phrase:** activate hands-free mode with your voice, then keep speaking commands until you stop it.
+- **Silence recovery:** an empty “No speech detected” timeout automatically restarts hands-free listening. Escape and Stop cancel pending restarts.
+
+These features are available on the [`feature/custom-shortcut-hands-free` branch](https://github.com/maxxo-1/jev-use/tree/feature/custom-shortcut-hands-free). The `main` branch currently contains the original app code plus this updated guide. The changes have been offered upstream in [savka777/jev-use#2](https://github.com/savka777/jev-use/pull/2).
+
 ## Quick start
 
-Requires macOS 14.2+ and Xcode. No dependencies.
+Requires macOS 14.2+ and Apple Command Line Tools or Xcode. Full Xcode is required to run the XCTest suite. No third-party package dependencies.
+
+Clone the feature branch to build the updated app:
 
 ```sh
+git clone --branch feature/custom-shortcut-hands-free https://github.com/maxxo-1/jev-use.git
+cd jev-use
 bash build.sh
 open "$HOME/Applications/Desktop Voice.app"
 ```
 
 In setup: save your TypeSafe API key (stored in the Keychain), then allow Accessibility, microphone and speech.
 
-Hold **Control–Option–Space**, speak, release. **Escape** cancels. Or type a command in the widget, or from a shell: `scripts/say.sh "Open Finder"`.
+Hold **Control–Option–Space**, speak, then release to act. **Escape** cancels pending work. You can also type a command in **Settings and commands**, or run `scripts/say.sh "Open Finder"` from a shell.
+
+### Change the keyboard shortcut
+
+1. Open **Settings and commands** from the menu bar or the widget's gear icon.
+2. Under **Choose your voice shortcut**, click **Change shortcut**.
+3. Press the key combination you want to use.
+
+Your choice is saved across launches and shown in the widget. Escape cancels recording. If another app has registered the combination, Desktop Voice reports the conflict and attempts to restore your previous shortcut. macOS-reserved combinations, Escape, and modifier-only shortcuts are not supported.
+
+## Hands-free widget
+
+Click **Start hands-free** in the widget. Speak a command and pause for about 1.5 seconds to submit it. The app waits for Apple's final transcript before acting, pauses its microphone while executing, then listens for your next command. Idle listening sessions renew automatically. Apple’s empty “No speech detected” timeout also restarts listening instead of switching hands-free mode off. Hands-free mode is off at launch.
+
+Click **Hands-free on · Stop**, press **Escape**, close the widget, or open Settings to stop hands-free use. A microphone, recognition, or command error also stops it and shows the problem. Apple Speech may process audio online, as with hold-to-talk.
+
+### Optional wake phrase
+
+Enable **Start hands-free with “Hey Jev”** in Settings, then click **Listen for “Hey Jev”** in the widget. Say “Hey Jev” on its own or followed by a command, such as “Hey Jev, open Finder”. Once activated, hands-free stays on until you stop it; you do not need to repeat the phrase for each command. Stop, Escape, closing the widget, or opening Settings turns all listening off. The preference is saved, but listening never starts automatically at launch.
+
+The phrase must begin the recognized utterance. Unrelated speech is discarded while waiting, without sending commands or screen context to Jev. Wake-word listening uses Apple Speech and may process audio online; it is not a dedicated offline wake-word engine.
 
 ## Examples
 
@@ -46,7 +79,10 @@ Everything is logged locally: `log show --predicate 'subsystem == "local.jev-use
 
 ## Develop
 
+Run these commands from the feature-branch checkout above. The focused checks cover shortcut preferences, silence recovery and cancellation, and wake-phrase matching. Live microphone and end-to-end command testing remain outstanding.
+
 ```sh
-swift test        # 10 tests
+swift test        # requires XCTest from full Xcode
+bash scripts/check-desktop.sh  # focused checks; Command Line Tools are sufficient
 bash build.sh     # quit the app first
 ```
